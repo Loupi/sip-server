@@ -4,28 +4,34 @@ for clients to query the sip register by sending AOR identifiers, line by line.
 When found, the SIP json is returned to the client. If not, an empty line is returned.
 If clients are inactive for x milliseconds they are disconnected.
 
-Usage: sip-server [s] [-b bind_address] [-p port] [-t timeout(ms)] [-q queue_len] -i input_file
+## Usage
+sip-server [s] [-b bind_address] [-p port] [-t timeout(ms)] [-q queue_len] -i input_file
 ie: sip-server -b 0.0.0.0 -p 8080 -t 10000 -q 128 -i ../regs
 
-defaults
+## Defaults
 * verbose
 * bind_address: 0.0.0.0
 * port: 8080
 * timeout: 10000
 * queue_len: 128
 
-sip-server depends on
+## Dependencies
 * libuv for asynchronous network i/o
 * plibsys for hastable implementation
 * getopt for command line parsing
 
+
+## Build Instructions
+
+### Requirements
 Conan package manager and CMake are required to build the project.
 Visit their website for installation instructions for your system.
 Set your path environment variable accordingly.
 * https://conan.io/downloads.html
 * https://cmake.org/
 
-## Build Instructions
+
+### All
 On all systems, extract the sip-server archive where you prefer and cd to its directory.
 
 ### Linux
