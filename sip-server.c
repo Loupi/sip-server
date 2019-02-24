@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <getopt.h>
 #include <plibsys.h>
 #include <uv.h>
@@ -30,6 +31,7 @@ typedef struct {
 } SocketData;
 
 
+char* datetime_string();
 void log_info(char *fmt, ...);
 void log_error(char *fmt, ...);
 void print_usage();
@@ -46,8 +48,20 @@ void socket_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf);
 void socket_write(uv_write_t *req, int status);
 
 
+char* datetime_string() {
+  time_t rawtime;
+  struct tm *info;
+  static char buffer[80];
+
+  time( &rawtime );
+  info = localtime( &rawtime );
+  strftime(buffer, 80, "%m/%d/%Y %H:%M:%S", info);
+  return buffer;
+}
+
 void log_info(char *fmt, ...) {
   if (verbose_flag) {
+    printf("%s ", datetime_string());
     va_list args;
     va_start(args, fmt);
     vprintf(fmt, args);
@@ -58,6 +72,7 @@ void log_info(char *fmt, ...) {
 
 void log_error(char *fmt, ...) {
   if (verbose_flag) {
+    fprintf(stderr, "%s ", datetime_string());
     va_list args;
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -115,8 +130,9 @@ int main(int argc, char** argv) {
 }
 
 #ifdef WIN32
+/* Patch missing windows function  */
 char* getline(char** dst, size_t len, FILE* fp) {
-  char buffer[4096];
+  static char buffer[4096];
   memset(buffer, sizeof(buffer), 0);
   
   if (fgets(buffer, 4096, fp)) {
@@ -241,7 +257,7 @@ int start_server() {
     return 1;
   }
 
-  log_info("Server started %s:%d\n", bind_address, port);
+  log_info("%s:%d server started.\n", bind_address, port);
   uv_run(loop, UV_RUN_DEFAULT);
   return uv_loop_close(uv_default_loop());
 }
@@ -330,9 +346,14 @@ void socket_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
   } else if (nread > 0) {
     /* Got some data, tokenize and process it. */
     buf->base[nread] = 0;
-    char* token = strtok(buf->base, separator);
-    int nb = 0;
     char* base = buf->base;
+
+    /* Use strsep on linux to return empty lines for empty tokens */
+#ifdef WIN32
+    char* token = strtok(base, separator);
+#else
+    char* token = strsep(&base, separator);
+#endif
     
     while (token != NULL) {
       char* toSend;
@@ -357,7 +378,13 @@ void socket_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
       uv_buf_t wrbuf = uv_buf_init(toSend, datalen);
       uv_write(req, client, &wrbuf, 1, socket_write);
 
+#ifdef WIN32
       token = strtok(NULL, separator);
+#else
+      token = strsep(&base, separator);
+      if (base == NULL)
+        break;
+#endif
     }
 
     /* Restart read timeout and wait for data. */
