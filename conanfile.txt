@@ -1,0 +1,7 @@
+[requires]
+plibsys/0.0.4@saprykin/stable
+libuv/1.25.0@bincrafters/stable
+getopt/1.0@bincrafters/stable
+
+[generators]
+cmake
